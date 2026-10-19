@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/shared/*"],
+      "@backend/*": ["backend/*"],
+      "@database/*": ["database/*"]
+    }
+  },
+  "include": [
+    "src/main/**/*",
+    "src/preload/**/*",
+    "backend/**/*",
+    "database/**/*",
+    "updater/**/*",
+    "src/shared/**/*"
+  ],
+  "exclude": ["node_modules", "out", "dist", "release"]
+}

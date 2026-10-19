@@ -1,0 +1,13 @@
+node_modules/
+server/node_modules/
+server/.git.local-backup/
+out/
+release/
+dist/
+.env
+*.log
+*.tmp
+*.zip.tmp
+*.db
+*.db-shm
+*.db-wal

@@ -1,0 +1,61 @@
+{
+  appId: "com.slavonska-ravnica.sr-launcher-v2",
+  productName: "Slavonska Ravnica",
+  copyright: "Copyright © 2024 Slavonska Ravnica",
+  asar: true,
+  directories: {
+    buildResources: "assets",
+    output: "release"
+  },
+  files: [
+    "out/**/*",
+    "!out/**/*.map",
+    "node_modules/**/*",
+    "!node_modules/**/node_modules",
+    "package.json"
+  ],
+  extraResources: [
+    {
+      from: "assets",
+      to: "assets",
+      filter: ["**/*"]
+    }
+  ],
+  win: {
+    executableName: "Slavonska Ravnica",
+    icon: "assets/icons/icon.png",
+    requestedExecutionLevel: "asInvoker",
+    target: [
+      {
+        target: "nsis",
+        arch: ["x64"]
+      },
+      {
+        target: "portable",
+        arch: ["x64"]
+      }
+    ]
+  },
+  nsis: {
+    artifactName: "SlavonskaRavnica-Setup-${version}.exe",
+    shortcutName: "Slavonska Ravnica",
+    uninstallDisplayName: "Slavonska Ravnica Launcher",
+    createDesktopShortcut: "always",
+    createStartMenuShortcut: true,
+    perMachine: false,
+    oneClick: true,
+    allowToChangeInstallationDirectory: false,
+    runAfterFinish: true
+  },
+  publish: {
+    provider: "github",
+    owner: "kteam1253-beep",
+    repo: "Slavonska-Ravnica-Launcher",
+    releaseType: "release"
+  },
+  npmRebuild: false,
+  buildDependenciesFromSource: false,
+  asarUnpack: [
+    "node_modules/better-sqlite3/**/*"
+  ]
+}
