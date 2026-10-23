@@ -10,6 +10,6 @@
 // (Settings > Discord) — useful for the admin/dev machine.
 // ============================================================
 
-export const BACKEND_URL = 'https://slavonska-ravnica-launcher-production.up.railway.app'
+export const BACKEND_URL = 'https://site--slavonska-ravnica-launcher--l7yzsqbkfm22.code.run'
 
 export const isBackendMode = (): boolean => BACKEND_URL.trim().length > 0
