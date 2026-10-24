@@ -43,6 +43,12 @@ const MYSQL_DATABASE_URL = process.env.MYSQL_URL ||
 const mysqlPool = MYSQL_DATABASE_URL
   ? mysql.createPool({
       uri: MYSQL_DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: true,
+        ...(process.env.MYSQL_SSL_CA
+          ? { ca: process.env.MYSQL_SSL_CA.replace(/\\n/g, '\n') }
+          : {})
+      },
       waitForConnections: true,
       connectionLimit: 5,
       queueLimit: 0

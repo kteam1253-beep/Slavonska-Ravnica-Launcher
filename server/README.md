@@ -62,3 +62,12 @@ Launcher salje izmjenu na backend, backend je sprema u MySQL, a drugi korisnici
 dobiju novi config kad se launcher prijavi/provjeri sesiju ili kad se osvjezi lista servera.
 
 Ako `MYSQL_URL` nije postavljen, backend se vraca na fallback i cita/pise `servers.json`.
+
+## MySQL TLS
+
+Backend koristi TLS vezu s provjerom certifikata za MySQL, ukljucujuci baze koje
+zahtijevaju `require_secure_transport=ON`. Za certifikate izdane od javno pouzdanog
+CA-a nije potrebna dodatna varijabla. Ako hosting baze koristi vlastiti CA,
+postavi `MYSQL_SSL_CA` na sadrzaj PEM CA certifikata koji daje hosting baze
+(podrzani su i stvarni prijelomi redaka i zapis `\n`). Nakon izmjene napravi
+redeploy backenda. Nemoj iskljucivati provjeru certifikata ili secure transport.
