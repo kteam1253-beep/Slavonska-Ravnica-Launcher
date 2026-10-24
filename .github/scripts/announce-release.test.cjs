@@ -31,13 +31,19 @@ test('announcement selects the uploaded installer and skips unavailable releases
     await announce(args)
     assert.equal(sent[0].components[0].components[0].url, 'https://example.com/setup.exe')
     assert.deepEqual(sent[0].allowed_mentions.parse, [])
+    assert.equal(sent[0].embeds, undefined)
+    assert.ok(sent[0].content.includes('Ispravci'))
+    release.body = 'Duga bilješka. '.repeat(500)
+    await announce(args)
+    assert.ok(sent[1].content.length <= 2000)
+    assert.ok(sent[1].content.endsWith('podatke servera.'))
     assets = []
     await assert.rejects(() => announce(args), /installer missing/)
     release.prerelease = true
     await announce(args)
     delete process.env.DISCORD_RELEASE_WEBHOOK_URL
     await announce(args)
-    assert.equal(sent.length, 1)
+    assert.equal(sent.length, 2)
   } finally {
     global.fetch = oldFetch
     if (oldWebhook === undefined) delete process.env.DISCORD_RELEASE_WEBHOOK_URL

@@ -24,23 +24,19 @@ module.exports = async function announce({ github, context, core }) {
 
   const logo = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${encodeURIComponent(tag)}/assets/icons/logo.png`
   const notes = (release.body || '').trim()
-  const changelog = notes
-    ? (notes.length > 2400 ? `${notes.slice(0, 2397)}…` : notes)
-    : 'Dostupna je nova verzija launchera. Preuzmi je putem gumba ispod.'
+  const heading = `🚀 **SR Launcher — ažuriranje ${tag}**\n\n**Što je novo:**\n`
+  const instructions = '\n\n**Već imaš launcher?**\nPokreni ga i prihvati ponuđeno ažuriranje.\n\n**Prva instalacija?**\nKlikni **Preuzmi launcher**, pokreni instalaciju i prijavi se putem Discorda. Launcher će automatski dohvatiti podatke servera.'
+  const maxNotesLength = 2000 - heading.length - instructions.length
+  const fullNotes = notes || 'Dostupna je nova verzija launchera. Preuzmi je putem gumba ispod.'
+  const changelog = fullNotes.length > maxNotesLength
+    ? `${fullNotes.slice(0, maxNotesLength - 1).replace(/[\uD800-\uDBFF]$/, '')}…`
+    : fullNotes
   const payload = {
     username: 'Slavonska Ravnica',
     avatar_url: logo,
     allowed_mentions: { parse: [] },
-    embeds: [{
-      color: 0xf2c200,
-      author: { name: 'Slavonska Ravnica', icon_url: logo },
-      title: `🚀 SR Launcher — ažuriranje ${tag}`,
-      url: release.html_url,
-      thumbnail: { url: logo },
-      description: `**Što je novo:**\n${changelog}\n\n**Već imaš launcher?**\nPokreni ga i prihvati ponuđeno ažuriranje.\n\n**Prva instalacija?**\nKlikni **Preuzmi launcher**, pokreni instalaciju i prijavi se putem Discorda. Launcher će automatski dohvatiti podatke servera.`,
-      footer: { text: `Slavonska Ravnica • ${tag}` },
-      timestamp: release.published_at
-    }],
+    content: `${heading}${changelog}${instructions}`,
+    flags: 4,
     components: [{ type: 1, components: [{
       type: 2, style: 5, label: 'Preuzmi launcher', url: installer.browser_download_url
     }] }]

@@ -5,10 +5,11 @@ U GitHub repozitoriju otvori Settings → Secrets and variables → Actions i do
 repository secret `DISCORD_RELEASE_WEBHOOK_URL` s URL-om tog webhooka.
 URL nemoj spremati u izvorni kod.
 
-Workflow `Release Launcher` nakon uspjesnog builda i objave salje zlatnu Discord
+Workflow `Release Launcher` nakon uspjesnog builda i objave salje obicnu tekstualnu Discord
 poruku s opisom iz GitHub Release biljeski i gumbom **Preuzmi launcher**.
 Gumb koristi stvarni URL objavljenog `SlavonskaRavnica-Setup-<verzija>.exe`
 asset-a, nikad portable izdanje. Svaka nova poruka vodi na svoju verziju.
+Poruka nema embed, a dugacke biljeske skracuju se na Discord limit od 2000 znakova.
 Biljeske pripremi u draft releaseu prije pokretanja objave ako zelis vlastiti
 popis promjena u poruci; naknadno uredjivanje biljeski ne mijenja Discord poruku.
 
