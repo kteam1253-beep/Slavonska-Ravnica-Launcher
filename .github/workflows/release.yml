@@ -35,10 +35,8 @@ jobs:
             const tag = `v${version}`
             const notesPath = `docs/releases/${tag}.md`
             if (!fs.existsSync(notesPath)) return
-            try {
-              await github.rest.repos.getReleaseByTag({ ...context.repo, tag })
-            } catch (error) {
-              if (error.status !== 404) throw error
+            const releases = await github.paginate(github.rest.repos.listReleases, context.repo)
+            if (!releases.some(release => release.tag_name === tag)) {
               await github.rest.repos.createRelease({
                 ...context.repo,
                 tag_name: tag,
@@ -54,6 +52,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run dist -- --publish always
+
+      - name: Publish completed release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { version } = require('./package.json')
+            const releases = await github.paginate(github.rest.repos.listReleases, context.repo)
+            const release = releases.find(item => item.tag_name === `v${version}`)
+            if (!release) throw new Error('Release not found after build')
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...context.repo, release_id: release.id
+            })
+            for (const name of [`SlavonskaRavnica-Setup-${version}.exe`, 'latest.yml']) {
+              if (!assets.some(asset => asset.name === name && asset.state === 'uploaded' && asset.size > 0)) {
+                throw new Error(`Missing uploaded asset: ${name}`)
+              }
+            }
+            if (release.draft) await github.rest.repos.updateRelease({
+              ...context.repo, release_id: release.id, draft: false
+            })
 
       - name: Announce release on Discord
         uses: actions/github-script@v7
