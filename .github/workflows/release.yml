@@ -31,3 +31,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run dist -- --publish always
+
+      - name: Announce release on Discord
+        uses: actions/github-script@v7
+        env:
+          DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+        with:
+          script: |
+            const announce = require('./.github/scripts/announce-release.cjs')
+            await announce({ github, context, core })
