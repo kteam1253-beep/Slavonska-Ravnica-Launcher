@@ -344,6 +344,7 @@ export interface IElectronAPI {
 
   // Logs
   getLogs: () => Promise<IPCResponse<LogEntry[]>>
+  exportLogs: () => Promise<IPCResponse<string | null>>
   clearLogs: () => Promise<IPCResponse>
 
   // Game

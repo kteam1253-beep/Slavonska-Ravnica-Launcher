@@ -65,6 +65,7 @@ const api: IElectronAPI = {
 
   // Logs
   getLogs: () => ipcRenderer.invoke('log:get-all'),
+  exportLogs: () => ipcRenderer.invoke('log:export'),
   clearLogs: () => ipcRenderer.invoke('log:clear'),
 
   // Game

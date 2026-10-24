@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useLogStore } from '../../store/log.store'
 import type { LogEntry } from '../../../../../shared/types'
 
@@ -12,16 +12,34 @@ const LEVEL_CONFIG = {
 export default function Logs(): React.ReactElement {
   const { getFiltered, filter, setFilter, clearLogs, fetchLogs, isLoading } = useLogStore()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportStatus, setExportStatus] = useState('')
+
+  async function exportLogs(): Promise<void> {
+    setIsExporting(true)
+    setExportStatus('')
+    try {
+      const result = await window.electron.exportLogs()
+      if (!result.success) setExportStatus(result.error || 'Greška spremanja logova')
+      else if (result.data) setExportStatus(`Logovi spremljeni: ${result.data}`)
+    } catch {
+      setExportStatus('Greška spremanja logova')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   useEffect(() => {
     fetchLogs()
   }, [])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [getFiltered().length])
+  // The store keeps newest entries first; display them chronologically here.
+  const logs = [...getFiltered()].reverse()
+  const latestLogId = logs[logs.length - 1]?.id
 
-  const logs = getFiltered()
+  useEffect(() => {
+    if (!isLoading) bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [latestLogId, logs.length, filter, isLoading])
 
   const filterButtons = [
     { key: 'all' as const, label: 'Sve' },
@@ -40,6 +58,11 @@ export default function Logs(): React.ReactElement {
           <p className="text-gray-500 text-sm mt-1">{logs.length} unosa</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={exportLogs} disabled={isExporting || isLoading}
+            title="Spremi do 500 najnovijih logova iz svih kategorija"
+            className="btn-ghost text-sm disabled:opacity-50">
+            {isExporting ? 'Spremanje...' : 'Preuzmi logove (.lua)'}
+          </button>
           <button onClick={fetchLogs} className="btn-ghost flex items-center gap-2 text-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -58,6 +81,7 @@ export default function Logs(): React.ReactElement {
       </div>
 
       {/* Filter buttons */}
+      {exportStatus && <p role="status" className="text-sm text-gray-300 break-all">{exportStatus}</p>}
       <div className="flex items-center gap-1 bg-dark-200 rounded-xl p-1 border border-dark-400 w-fit">
         {filterButtons.map((btn) => (
           <button
@@ -110,9 +134,9 @@ function LogLine({ entry }: { entry: LogEntry }): React.ReactElement {
 
   return (
     <div className={`flex items-start gap-3 py-1.5 px-2 rounded-lg hover:bg-dark-300/30 transition-colors ${cfg.color}`}>
-      <span className="text-gray-700 flex-shrink-0 w-20">{time}</span>
+      <span className="text-gray-300 text-sm font-medium tabular-nums flex-shrink-0 w-20">{time}</span>
       <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0 mt-1`} />
-      <span className="text-gray-600 flex-shrink-0 w-14">[{entry.category}]</span>
+      <span className="text-gray-200 text-sm font-semibold flex-shrink-0 w-24 break-words">[{entry.category}]</span>
       <span className="break-all">{entry.message}</span>
     </div>
   )
