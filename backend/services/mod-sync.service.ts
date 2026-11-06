@@ -137,6 +137,9 @@ export class ModSyncService {
 
     const mods: Mod[] = []
 
+    // Downloads reference these IDs while automatic synchronization runs.
+    const existingIds = new Map(this.getModsFromDb(serverId).map((mod) => [mod.fileName.toLowerCase(), mod.id]))
+
     for (const serverMod of serverMods) {
       const localMod = localMap.get(serverMod.fileName.toLowerCase())
       let status: ModStatus
@@ -148,7 +151,7 @@ export class ModSyncService {
       }
 
       mods.push({
-        id: generateId(),
+        id: existingIds.get(serverMod.fileName.toLowerCase()) || generateId(),
         serverId,
         name: this.getModDisplayName(serverMod.fileName),
         fileName: serverMod.fileName,
@@ -174,7 +177,7 @@ export class ModSyncService {
       )
       if (!onServer) {
         mods.push({
-          id: generateId(),
+          id: existingIds.get(localMod.fileName.toLowerCase()) || generateId(),
           serverId,
           name: this.getModDisplayName(localMod.fileName),
           fileName: localMod.fileName,
@@ -268,8 +271,23 @@ export class ModSyncService {
       return 'UPDATE'
     }
 
-    if (serverMod.hash) this.setKnownHash(serverId, serverMod.fileName, serverMod.hash)
+    if (serverMod.hash) {
+      // Opaque GIANTS hashes cannot be compared with a ZIP's MD5. Only trust
+      // a receipt from a completed download, never a matching version alone.
+      const row = getDb().prepare(
+        'SELECT known_hash FROM mod_state WHERE server_id = ? AND file_name = ?'
+      ).get(serverId, serverMod.fileName.toLowerCase()) as { known_hash: string } | undefined
+      const localHash = await this.calculateHash(localMod.path)
+      localMod.hash = localHash
+      const receipt = JSON.stringify([serverMod.hash.toLowerCase(), localHash])
+      if (row?.known_hash !== receipt) return 'UPDATE'
+    }
     return 'OK'
+  }
+
+  async recordDownloadedMod(serverId: string, fileName: string, serverHash: string, localPath: string): Promise<void> {
+    const localHash = await this.calculateHash(localPath)
+    this.setKnownHash(serverId, fileName.toLowerCase(), JSON.stringify([serverHash.toLowerCase(), localHash]))
   }
 
   /** Loads the last-known content hash for every tracked mod on a server. */

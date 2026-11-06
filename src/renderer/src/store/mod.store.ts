@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useServerStore } from './server.store'
 import type { Mod, SyncResult } from '../../../../shared/types'
 
 interface ModStore {
@@ -11,6 +12,7 @@ interface ModStore {
   searchQuery: string
 
   fetchMods: (serverId: string) => Promise<void>
+  refreshAfterDownload: (serverId: string) => Promise<void>
   syncMods: (serverId: string) => Promise<SyncResult | null>
   downloadMissing: (serverId: string) => Promise<void>
   updateAllMods: (serverId: string) => Promise<void>
@@ -62,6 +64,23 @@ export const useModStore = create<ModStore>((set, get) => ({
       const msg = err instanceof Error ? err.message : 'Greška sinkronizacije'
       set({ error: msg, isSyncing: false })
       return null
+    }
+  },
+
+  refreshAfterDownload: async (serverId) => {
+    try {
+      // Recheck the files and persist their statuses, including for inactive servers.
+      const res = await window.electron.syncMods(serverId)
+      if (useServerStore.getState().activeServer?.id !== serverId) return
+      if (res.success && res.data) {
+        set({ mods: res.data.mods, syncResult: res.data, error: null })
+      } else {
+        set({ error: res.error || 'Greška osvježavanja modova nakon preuzimanja' })
+      }
+    } catch {
+      if (useServerStore.getState().activeServer?.id === serverId) {
+        set({ error: 'Greška osvježavanja modova nakon preuzimanja' })
+      }
     }
   },
 

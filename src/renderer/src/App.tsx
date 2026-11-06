@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuthStore } from './store/auth.store'
 import { useLogStore } from './store/log.store'
 import { useDownloadStore } from './store/download.store'
+import { useModStore } from './store/mod.store'
 import { useUploadStore } from './store/upload.store'
 import DiscordLogin from './components/auth/DiscordLogin'
 import AccessDenied from './components/auth/AccessDenied'
@@ -39,7 +40,33 @@ function AppContent(): React.ReactElement {
   useEffect(() => {
     const onLog = (entry: LogEntry): void => addLog(entry)
     const onProgress = (progress: DownloadProgress): void => updateDownloadProgress(progress)
-    const onQueueUpdate = (queue: DownloadItem[]): void => setQueue(queue)
+    const completedDownloads = new Set<string>()
+    const pendingServers = new Set<string>()
+    let refreshingMods = false
+    let disposed = false
+    const refreshCompletedMods = async (): Promise<void> => {
+      if (refreshingMods) return
+      refreshingMods = true
+      try {
+        while (!disposed && pendingServers.size > 0) {
+          const serverId = pendingServers.values().next().value as string
+          pendingServers.delete(serverId)
+          await useModStore.getState().refreshAfterDownload(serverId)
+        }
+      } finally {
+        refreshingMods = false
+      }
+    }
+    const onQueueUpdate = (queue: DownloadItem[]): void => {
+      setQueue(queue)
+      for (const item of queue) {
+        if (item.status === 'completed' && !completedDownloads.has(item.id)) {
+          completedDownloads.add(item.id)
+          pendingServers.add(item.serverId)
+        }
+      }
+      void refreshCompletedMods()
+    }
     const onUploadQueue = (queue: UploadItem[]): void => setUploadQueue(queue)
     const onUploadProgress = (item: UploadItem): void => updateUploadItem(item)
     const onUpdateAvailable = (info: UpdateInfo): void => {
@@ -68,6 +95,7 @@ function AppContent(): React.ReactElement {
     window.electron.on('update:downloaded', onUpdateDownloaded as never)
 
     return () => {
+      disposed = true
       window.electron.off('log:new-entry', onLog as never)
       window.electron.off('download:progress', onProgress as never)
       window.electron.off('download:queue-update', onQueueUpdate as never)

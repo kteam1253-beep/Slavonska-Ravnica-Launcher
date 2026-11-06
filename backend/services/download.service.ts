@@ -175,7 +175,7 @@ export class DownloadService {
       // Remember the server content hash we just downloaded, so this mod is
       // considered in-sync until the server changes it again.
       if (verifyMod?.serverHash) {
-        modSyncService.setKnownHash(item.serverId, item.fileName, verifyMod.serverHash)
+        await modSyncService.recordDownloadedMod(item.serverId, item.fileName, verifyMod.serverHash, localPath)
       }
 
       item.status = 'completed'
