@@ -8,6 +8,7 @@ import { sftpService } from './sftp.service'
 import { restApiService } from './rest-api.service'
 import { fsStatsService } from './fs-stats.service'
 import { logService } from './log.service'
+import { compareRemoteZip } from './zip-compare.service'
 import type {
   GameServer,
   Mod,
@@ -280,7 +281,22 @@ export class ModSyncService {
       const localHash = await this.calculateHash(localMod.path)
       localMod.hash = localHash
       const receipt = JSON.stringify([serverMod.hash.toLowerCase(), localHash])
-      if (row?.known_hash !== receipt) return 'UPDATE'
+      if (row?.known_hash !== receipt) {
+        if (!/^https?:\/\//i.test(serverMod.path || '')) return 'UPDATE'
+        try {
+          const matches = await compareRemoteZip(serverMod.path, localMod.path)
+          if (!matches) {
+            logService.info('SYNC', `${serverMod.fileName}: UPDATE (različit ZIP sadržaj)`)
+            return 'UPDATE'
+          }
+          this.setKnownHash(serverId, serverMod.fileName.toLowerCase(), receipt)
+        } catch {
+          // An unavailable check must not schedule hundreds of downloads or
+          // claim that unverified files are current. Do not expose URLs/API codes.
+          logService.warning('SYNC', `${serverMod.fileName}: nije moguće provjeriti ZIP sadržaj; mod nije označen za preuzimanje`)
+          return 'GREŠKA'
+        }
+      }
     }
     return 'OK'
   }

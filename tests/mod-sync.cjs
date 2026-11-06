@@ -4,7 +4,7 @@ const fs = require('node:fs')
 const vm = require('node:vm')
 const ts = require('typescript')
 
-function fixture() {
+function fixture(compare = async () => true) {
   const receipts = new Map()
   const database = {
     getDb: () => ({ prepare: () => ({
@@ -20,6 +20,8 @@ function fixture() {
   const exports = {}
   vm.runInNewContext(compiled, { exports, Buffer, require: (name) => {
     if (name.includes('database/database')) return database
+    if (name === './zip-compare.service') return { compareRemoteZip: compare }
+    if (name === './log.service') return { logService: { info() {}, warning() {} } }
     if (name.startsWith('./') || name === 'yauzl') return {}
     return require(name)
   } })
@@ -35,6 +37,25 @@ test('matching version and legacy hash do not falsely confirm an opaque hash', a
   receipts.set('server/mod.zip', server.hash)
   assert.equal(await service.getUpdateStatus('server', server, local), 'UPDATE')
   assert.equal(receipts.get('server/mod.zip'), server.hash)
+})
+
+test('existing matching ZIP is confirmed without downloading the mod', async () => {
+  let calls = 0
+  const { service, server, local } = fixture(async () => { calls++; return true })
+  server.path = 'https://example.invalid/mod.zip'
+  assert.equal(await service.getUpdateStatus('server', server, local), 'OK')
+  assert.equal(await service.getUpdateStatus('server', server, local), 'OK')
+  assert.equal(calls, 1)
+})
+
+test('different ZIP needs an update, unavailable verification does not', async () => {
+  const different = fixture(async () => false)
+  different.server.path = 'https://example.invalid/mod.zip'
+  assert.equal(await different.service.getUpdateStatus('server', different.server, different.local), 'UPDATE')
+  const unavailable = fixture(async () => { throw new Error('Range unsupported') })
+  unavailable.server.path = 'https://example.invalid/mod.zip'
+  assert.equal(await unavailable.service.getUpdateStatus('server', unavailable.server, unavailable.local), 'GREŠKA')
+  assert.equal(unavailable.receipts.size, 0)
 })
 
 test('download receipt accepts installed content and detects server or local changes', async () => {
